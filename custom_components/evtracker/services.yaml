@@ -1,0 +1,171 @@
+log_session:
+  name: Log charging session
+  description: Log a charging session with full control over all parameters.
+  fields:
+    energy_kwh:
+      name: Energy consumed
+      description: Amount of energy consumed in kWh.
+      required: true
+      example: 35.5
+      selector:
+        number:
+          min: 0.01
+          max: 1000
+          step: 0.01
+          unit_of_measurement: kWh
+          mode: box
+    start_time:
+      name: Start time
+      description: When the charging session started.
+      example: "2024-01-15T08:00:00"
+      selector:
+        datetime:
+    end_time:
+      name: End time
+      description: When the charging session ended.
+      example: "2024-01-15T12:00:00"
+      selector:
+        datetime:
+    car_id:
+      name: Car ID
+      description: ID of the car (leave empty to use default car from config).
+      selector:
+        number:
+          min: 1
+          mode: box
+    location:
+      name: Location
+      description: Where the charging took place.
+      example: "Home"
+      selector:
+        text:
+    external_id:
+      name: External ID
+      description: Unique identifier for deduplication (e.g., charger transaction ID).
+      example: "HA-1705312800"
+      selector:
+        text:
+    provider:
+      name: Provider
+      description: Charging provider name.
+      example: "HOME"
+      selector:
+        text:
+    energy_source:
+      name: Energy source
+      description: Source of energy (GRID or SOLAR). Can be mapped from a solar production sensor.
+      example: "GRID"
+      selector:
+        select:
+          options:
+            - "GRID"
+            - "SOLAR"
+    rate_type:
+      name: Tariff rate type
+      description: >
+        Electricity tariff rate (HIGH or LOW) for dual-rate plans.
+        HIGH = peak/daytime tariff, LOW = off-peak/night tariff.
+        Can be mapped from a binary sensor or time-based automation.
+      example: "LOW"
+      selector:
+        select:
+          options:
+            - "HIGH"
+            - "LOW"
+    price_per_kwh:
+      name: Price per kWh
+      description: Price per kWh without VAT.
+      example: 4.50
+      selector:
+        number:
+          min: 0
+          max: 100
+          step: 0.01
+          unit_of_measurement: "CZK/kWh"
+          mode: box
+    vat_percentage:
+      name: VAT percentage
+      description: VAT percentage to apply.
+      example: 21
+      selector:
+        number:
+          min: 0
+          max: 100
+          step: 0.1
+          unit_of_measurement: "%"
+          mode: box
+    notes:
+      name: Notes
+      description: Additional notes about the session.
+      selector:
+        text:
+          multiline: true
+
+log_session_simple:
+  name: Log charging session (simple)
+  description: Log a charging session with smart defaults from EV Tracker settings.
+  fields:
+    energy_kwh:
+      name: Energy consumed
+      description: Amount of energy consumed in kWh.
+      required: true
+      example: 35.5
+      selector:
+        number:
+          min: 0.01
+          max: 1000
+          step: 0.01
+          unit_of_measurement: kWh
+          mode: box
+    start_time:
+      name: Start time
+      description: When the charging session started.
+      example: "2024-01-15T08:00:00"
+      selector:
+        datetime:
+    end_time:
+      name: End time
+      description: When the charging session ended.
+      example: "2024-01-15T12:00:00"
+      selector:
+        datetime:
+    car_id:
+      name: Car ID
+      description: ID of the car (leave empty to use default car from config).
+      selector:
+        number:
+          min: 1
+          mode: box
+    location:
+      name: Location
+      description: Where the charging took place.
+      example: "Home"
+      selector:
+        text:
+    external_id:
+      name: External ID
+      description: Unique identifier for deduplication (e.g., charger transaction ID).
+      example: "HA-1705312800"
+      selector:
+        text:
+    energy_source:
+      name: Energy source
+      description: Source of energy (GRID or SOLAR). Can be mapped from a solar production sensor.
+      example: "GRID"
+      selector:
+        select:
+          options:
+            - "GRID"
+            - "SOLAR"
+    rate_type:
+      name: Tariff rate type
+      description: >
+        Electricity tariff rate (HIGH or LOW) for dual-rate plans.
+        HIGH = peak/daytime tariff, LOW = off-peak/night tariff.
+        Can be mapped from a binary sensor or time-based automation.
+      example: "LOW"
+      selector:
+        select:
+          options:
+            - "HIGH"
+            - "LOW"

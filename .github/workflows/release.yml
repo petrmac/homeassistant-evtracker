@@ -1,0 +1,75 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get version from tag
+        id: version
+        run: echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+      - name: Update version in manifest
+        run: |
+          sed -i 's/"version": "[^"]*"/"version": "${{ steps.version.outputs.version }}"/' custom_components/evtracker/manifest.json
+
+      - name: Update version in const.py
+        run: |
+          sed -i 's/VERSION: Final = "[^"]*"/VERSION: Final = "${{ steps.version.outputs.version }}"/' custom_components/evtracker/const.py
+
+      - name: Create release archive
+        run: |
+          cd custom_components
+          zip -r ../evtracker-${{ steps.version.outputs.version }}.zip evtracker
+
+      - name: Generate changelog
+        id: changelog
+        uses: orhun/git-cliff-action@v3
+        with:
+          config: cliff.toml
+          args: --latest --strip header
+        env:
+          OUTPUT: CHANGELOG.md
+        continue-on-error: true
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: v${{ steps.version.outputs.version }}
+          body: |
+            ## What's Changed
+
+            ${{ steps.changelog.outputs.content }}
+
+            ## Installation
+
+            ### HACS (Recommended)
+            1. Open HACS in Home Assistant
+            2. Click the three dots in the top right corner
+            3. Select "Custom repositories"
+            4. Add this repository URL with category "Integration"
+            5. Search for "EV Tracker" and install
+
+            ### Manual
+            1. Download the `evtracker-${{ steps.version.outputs.version }}.zip` file
+            2. Extract to your `custom_components` directory
+            3. Restart Home Assistant
+          files: |
+            evtracker-${{ steps.version.outputs.version }}.zip
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

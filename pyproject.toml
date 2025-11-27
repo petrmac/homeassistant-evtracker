@@ -1,0 +1,76 @@
+[project]
+name = "homeassistant-evtracker"
+version = "1.0.0"
+description = "Home Assistant integration for EV Tracker - track and analyze your electric vehicle charging costs"
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.12"
+authors = [{ name = "EV Tracker Team" }]
+keywords = ["homeassistant", "ev", "electric-vehicle", "charging", "hacs"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Framework :: Home Assistant",
+    "Intended Audience :: End Users/Desktop",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Home Automation",
+]
+
+[project.urls]
+Homepage = "https://github.com/evtracker/homeassistant-evtracker"
+Documentation = "https://github.com/evtracker/homeassistant-evtracker#readme"
+Repository = "https://github.com/evtracker/homeassistant-evtracker"
+Issues = "https://github.com/evtracker/homeassistant-evtracker/issues"
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+
+[tool.ruff.lint]
+select = [
+    "E",      # pycodestyle errors
+    "W",      # pycodestyle warnings
+    "F",      # Pyflakes
+    "I",      # isort
+    "B",      # flake8-bugbear
+    "C4",     # flake8-comprehensions
+    "UP",     # pyupgrade
+    "ARG",    # flake8-unused-arguments
+    "SIM",    # flake8-simplify
+    "PTH",    # flake8-use-pathlib
+    "ERA",    # eradicate
+    "RUF",    # Ruff-specific rules
+]
+ignore = [
+    "E501",   # line too long (handled by formatter)
+    "B008",   # do not perform function calls in argument defaults
+    "ARG001", # unused function argument
+    "ARG002", # unused method argument
+    "SIM102", # nested if statements (common in HA integrations)
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["custom_components.evtracker"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+
+[tool.coverage.run]
+source = ["custom_components/evtracker"]
+omit = ["tests/*"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+]
+
+[tool.mypy]
+python_version = "3.12"
+warn_return_any = true
+warn_unused_configs = true
+ignore_missing_imports = true

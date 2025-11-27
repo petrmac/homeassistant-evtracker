@@ -1,0 +1,223 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "EV Tracker API klíč",
+        "description": "Zadejte váš EV Tracker API klíč. Můžete si ho vygenerovat na evtracker.cz/settings/api-keys (vyžaduje PRO předplatné).",
+        "data": {
+          "api_key": "API klíč"
+        }
+      },
+      "select_car": {
+        "title": "Vyberte auto",
+        "description": "Vyberte auto, které chcete sledovat.",
+        "data": {
+          "car_id": "Auto"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Nepodařilo se připojit k EV Tracker API. Zkontrolujte připojení k internetu.",
+      "invalid_api_key": "Neplatný API klíč. Zkontrolujte klíč nebo se ujistěte, že máte PRO předplatné.",
+      "no_cars": "Ve vašem účtu nebyla nalezena žádná auta. Nejprve přidejte auto v EV Tracker.",
+      "unknown": "Došlo k neočekávané chybě. Zkuste to prosím znovu."
+    },
+    "abort": {
+      "already_configured": "Toto auto je již nakonfigurováno."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Nastavení EV Tracker",
+        "description": "Nastavte interval aktualizace a sledování tarifu.",
+        "data": {
+          "update_interval": "Interval aktualizace (sekundy)",
+          "tariff_source": "Sledování tarifu"
+        }
+      },
+      "tariff_schedule": {
+        "title": "Rozvrh tarifu",
+        "description": "Nastavte až 4 časová okna. Pro tarify jako D25d s nízkým tarifem v noci vyberte 'Okna definují NÍZKÝ tarif'. Pro tarify jako D45d s pouze několika hodinami vysokého tarifu vyberte 'Okna definují VYSOKÝ tarif' a zadejte tyto špičkové hodiny.",
+        "data": {
+          "tariff_window_type": "Typ okna",
+          "tariff_low_start_1": "Okno 1 začátek",
+          "tariff_low_end_1": "Okno 1 konec",
+          "tariff_low_start_2": "Okno 2 začátek (volitelné)",
+          "tariff_low_end_2": "Okno 2 konec (volitelné)",
+          "tariff_low_start_3": "Okno 3 začátek (volitelné)",
+          "tariff_low_end_3": "Okno 3 konec (volitelné)",
+          "tariff_low_start_4": "Okno 4 začátek (volitelné)",
+          "tariff_low_end_4": "Okno 4 konec (volitelné)",
+          "tariff_weekend_low": "O víkendu vždy NÍZKÝ tarif"
+        }
+      },
+      "tariff_entity": {
+        "title": "Entita tarifu",
+        "description": "Vyberte existující entitu, která indikuje nízký tarif (on = nízký tarif, off = vysoký tarif).",
+        "data": {
+          "tariff_entity": "Entita nízkého tarifu"
+        }
+      },
+      "prices": {
+        "title": "Konfigurace cen",
+        "description": "Nastavte výchozí ceny pro nabíjecí relace. Tyto ceny budou použity při logování relací bez explicitního zadání cen.",
+        "data": {
+          "use_prices": "Povolit automatické vyplňování cen",
+          "price_high": "Cena VYSOKÉHO tarifu (bez DPH)",
+          "price_low": "Cena NÍZKÉHO tarifu (bez DPH)",
+          "vat_percentage": "Sazba DPH"
+        }
+      }
+    },
+    "error": {
+      "window1_required": "Je vyžadováno alespoň jedno časové okno.",
+      "window_incomplete": "Každé okno musí mít čas začátku i konce."
+    }
+  },
+  "selector": {
+    "tariff_source": {
+      "options": {
+        "none": "Vypnuto",
+        "schedule": "Nastavit rozvrh",
+        "entity": "Použít existující entitu"
+      }
+    },
+    "window_type": {
+      "options": {
+        "low": "Okna definují NÍZKÝ tarif",
+        "high": "Okna definují VYSOKÝ tarif"
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "monthly_energy": {
+        "name": "Měsíční energie"
+      },
+      "monthly_cost": {
+        "name": "Měsíční náklady"
+      },
+      "monthly_sessions": {
+        "name": "Měsíční nabíjení"
+      },
+      "yearly_energy": {
+        "name": "Roční energie"
+      },
+      "yearly_cost": {
+        "name": "Roční náklady"
+      },
+      "last_session_energy": {
+        "name": "Poslední nabíjení - energie"
+      },
+      "last_session_cost": {
+        "name": "Poslední nabíjení - náklady"
+      },
+      "avg_cost_per_kwh": {
+        "name": "Průměrná cena za kWh"
+      }
+    },
+    "binary_sensor": {
+      "connected": {
+        "name": "API připojeno"
+      },
+      "low_tariff": {
+        "name": "Nízký tarif"
+      }
+    }
+  },
+  "services": {
+    "log_session": {
+      "name": "Zaznamenat nabíjení",
+      "description": "Zaznamená nabíjecí relaci s plnou kontrolou nad všemi parametry.",
+      "fields": {
+        "energy_kwh": {
+          "name": "Spotřebovaná energie",
+          "description": "Množství spotřebované energie v kWh."
+        },
+        "start_time": {
+          "name": "Čas zahájení",
+          "description": "Kdy nabíjení začalo."
+        },
+        "end_time": {
+          "name": "Čas ukončení",
+          "description": "Kdy nabíjení skončilo."
+        },
+        "car_id": {
+          "name": "ID auta",
+          "description": "ID auta (ponechte prázdné pro použití výchozího auta z konfigurace)."
+        },
+        "location": {
+          "name": "Místo",
+          "description": "Kde nabíjení proběhlo."
+        },
+        "external_id": {
+          "name": "Externí ID",
+          "description": "Jedinečný identifikátor pro deduplikaci."
+        },
+        "provider": {
+          "name": "Poskytovatel",
+          "description": "Název poskytovatele nabíjení."
+        },
+        "energy_source": {
+          "name": "Zdroj energie",
+          "description": "Zdroj energie (GRID nebo SOLAR). Lze mapovat ze senzoru solární produkce."
+        },
+        "rate_type": {
+          "name": "Typ tarifu",
+          "description": "Typ tarifní sazby (HIGH nebo LOW) pro dvoutarifní plány. HIGH = vysoký/denní tarif, LOW = nízký/noční tarif."
+        },
+        "price_per_kwh": {
+          "name": "Cena za kWh",
+          "description": "Cena za kWh bez DPH."
+        },
+        "vat_percentage": {
+          "name": "Sazba DPH",
+          "description": "Sazba DPH v procentech."
+        },
+        "notes": {
+          "name": "Poznámky",
+          "description": "Další poznámky k relaci."
+        }
+      }
+    },
+    "log_session_simple": {
+      "name": "Zaznamenat nabíjení (jednoduché)",
+      "description": "Zaznamená nabíjecí relaci s chytrými výchozími hodnotami z nastavení EV Tracker.",
+      "fields": {
+        "energy_kwh": {
+          "name": "Spotřebovaná energie",
+          "description": "Množství spotřebované energie v kWh."
+        },
+        "start_time": {
+          "name": "Čas zahájení",
+          "description": "Kdy nabíjení začalo."
+        },
+        "end_time": {
+          "name": "Čas ukončení",
+          "description": "Kdy nabíjení skončilo."
+        },
+        "car_id": {
+          "name": "ID auta",
+          "description": "ID auta (ponechte prázdné pro použití výchozího auta z konfigurace)."
+        },
+        "location": {
+          "name": "Místo",
+          "description": "Kde nabíjení proběhlo."
+        },
+        "external_id": {
+          "name": "Externí ID",
+          "description": "Jedinečný identifikátor pro deduplikaci."
+        },
+        "energy_source": {
+          "name": "Zdroj energie",
+          "description": "Zdroj energie (GRID nebo SOLAR). Lze mapovat ze senzoru solární produkce."
+        },
+        "rate_type": {
+          "name": "Typ tarifu",
+          "description": "Typ tarifní sazby (HIGH nebo LOW) pro dvoutarifní plány. HIGH = vysoký/denní tarif, LOW = nízký/noční tarif."
+        }
+      }
+    }
+  }
+}

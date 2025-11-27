@@ -1,0 +1,223 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "EV Tracker API Key",
+        "description": "Enter your EV Tracker API key. You can generate one at evtracker.cz/settings/api-keys (requires PRO subscription).",
+        "data": {
+          "api_key": "API Key"
+        }
+      },
+      "select_car": {
+        "title": "Select Car",
+        "description": "Select the car to track.",
+        "data": {
+          "car_id": "Car"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Failed to connect to EV Tracker API. Please check your internet connection.",
+      "invalid_api_key": "Invalid API key. Please check your key or ensure you have a PRO subscription.",
+      "no_cars": "No cars found in your account. Please add a car in EV Tracker first.",
+      "unknown": "An unexpected error occurred. Please try again."
+    },
+    "abort": {
+      "already_configured": "This car is already configured."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "EV Tracker Options",
+        "description": "Configure update interval and tariff tracking.",
+        "data": {
+          "update_interval": "Update interval (seconds)",
+          "tariff_source": "Tariff tracking"
+        }
+      },
+      "tariff_schedule": {
+        "title": "Tariff Schedule",
+        "description": "Configure up to 4 time windows. For tariffs like D25d with LOW periods at night, select 'Windows define LOW'. For tariffs like D45d with only a few HIGH peak hours, select 'Windows define HIGH' and enter those peak hours.",
+        "data": {
+          "tariff_window_type": "Window type",
+          "tariff_low_start_1": "Window 1 start",
+          "tariff_low_end_1": "Window 1 end",
+          "tariff_low_start_2": "Window 2 start (optional)",
+          "tariff_low_end_2": "Window 2 end (optional)",
+          "tariff_low_start_3": "Window 3 start (optional)",
+          "tariff_low_end_3": "Window 3 end (optional)",
+          "tariff_low_start_4": "Window 4 start (optional)",
+          "tariff_low_end_4": "Window 4 end (optional)",
+          "tariff_weekend_low": "Weekend always LOW tariff"
+        }
+      },
+      "tariff_entity": {
+        "title": "Tariff Entity",
+        "description": "Select an existing entity that indicates LOW tariff (on = LOW tariff, off = HIGH tariff).",
+        "data": {
+          "tariff_entity": "Low tariff entity"
+        }
+      },
+      "prices": {
+        "title": "Price Configuration",
+        "description": "Configure default prices for charging sessions. These will be used when logging sessions without specifying prices explicitly.",
+        "data": {
+          "use_prices": "Enable price auto-fill",
+          "price_high": "HIGH tariff price (without VAT)",
+          "price_low": "LOW tariff price (without VAT)",
+          "vat_percentage": "VAT percentage"
+        }
+      }
+    },
+    "error": {
+      "window1_required": "At least one time window is required.",
+      "window_incomplete": "Each window must have both start and end times."
+    }
+  },
+  "selector": {
+    "tariff_source": {
+      "options": {
+        "none": "Disabled",
+        "schedule": "Configure schedule",
+        "entity": "Use existing entity"
+      }
+    },
+    "window_type": {
+      "options": {
+        "low": "Windows define LOW tariff periods",
+        "high": "Windows define HIGH tariff periods"
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "monthly_energy": {
+        "name": "Monthly Energy"
+      },
+      "monthly_cost": {
+        "name": "Monthly Cost"
+      },
+      "monthly_sessions": {
+        "name": "Monthly Sessions"
+      },
+      "yearly_energy": {
+        "name": "Yearly Energy"
+      },
+      "yearly_cost": {
+        "name": "Yearly Cost"
+      },
+      "last_session_energy": {
+        "name": "Last Session Energy"
+      },
+      "last_session_cost": {
+        "name": "Last Session Cost"
+      },
+      "avg_cost_per_kwh": {
+        "name": "Average Cost per kWh"
+      }
+    },
+    "binary_sensor": {
+      "connected": {
+        "name": "API Connected"
+      },
+      "low_tariff": {
+        "name": "Low Tariff"
+      }
+    }
+  },
+  "services": {
+    "log_session": {
+      "name": "Log charging session",
+      "description": "Log a charging session with full control over all parameters.",
+      "fields": {
+        "energy_kwh": {
+          "name": "Energy consumed",
+          "description": "Amount of energy consumed in kWh."
+        },
+        "start_time": {
+          "name": "Start time",
+          "description": "When the charging session started."
+        },
+        "end_time": {
+          "name": "End time",
+          "description": "When the charging session ended."
+        },
+        "car_id": {
+          "name": "Car ID",
+          "description": "ID of the car (leave empty to use default car from config)."
+        },
+        "location": {
+          "name": "Location",
+          "description": "Where the charging took place."
+        },
+        "external_id": {
+          "name": "External ID",
+          "description": "Unique identifier for deduplication."
+        },
+        "provider": {
+          "name": "Provider",
+          "description": "Charging provider name."
+        },
+        "energy_source": {
+          "name": "Energy source",
+          "description": "Source of energy (GRID or SOLAR). Can be mapped from a solar production sensor."
+        },
+        "rate_type": {
+          "name": "Tariff rate type",
+          "description": "Electricity tariff rate (HIGH or LOW) for dual-rate plans. HIGH = peak/daytime, LOW = off-peak/night."
+        },
+        "price_per_kwh": {
+          "name": "Price per kWh",
+          "description": "Price per kWh without VAT."
+        },
+        "vat_percentage": {
+          "name": "VAT percentage",
+          "description": "VAT percentage to apply."
+        },
+        "notes": {
+          "name": "Notes",
+          "description": "Additional notes about the session."
+        }
+      }
+    },
+    "log_session_simple": {
+      "name": "Log charging session (simple)",
+      "description": "Log a charging session with smart defaults from EV Tracker settings.",
+      "fields": {
+        "energy_kwh": {
+          "name": "Energy consumed",
+          "description": "Amount of energy consumed in kWh."
+        },
+        "start_time": {
+          "name": "Start time",
+          "description": "When the charging session started."
+        },
+        "end_time": {
+          "name": "End time",
+          "description": "When the charging session ended."
+        },
+        "car_id": {
+          "name": "Car ID",
+          "description": "ID of the car (leave empty to use default car from config)."
+        },
+        "location": {
+          "name": "Location",
+          "description": "Where the charging took place."
+        },
+        "external_id": {
+          "name": "External ID",
+          "description": "Unique identifier for deduplication."
+        },
+        "energy_source": {
+          "name": "Energy source",
+          "description": "Source of energy (GRID or SOLAR). Can be mapped from a solar production sensor."
+        },
+        "rate_type": {
+          "name": "Tariff rate type",
+          "description": "Electricity tariff rate (HIGH or LOW) for dual-rate plans. HIGH = peak/daytime, LOW = off-peak/night."
+        }
+      }
+    }
+  }
+}
