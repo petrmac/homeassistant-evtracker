@@ -258,11 +258,14 @@ class EVTrackerOptionsFlowHandler(config_entries.OptionsFlow):
             if not start1 or not end1:
                 errors["base"] = "window1_required"
             # Each window must have both start and end if either is set
-            elif (start2 and not end2) or (end2 and not start2):
-                errors["base"] = "window_incomplete"
-            elif (start3 and not end3) or (end3 and not start3):
-                errors["base"] = "window_incomplete"
-            elif (start4 and not end4) or (end4 and not start4):
+            elif (
+                (start2 and not end2)
+                or (end2 and not start2)
+                or (start3 and not end3)
+                or (end3 and not start3)
+                or (start4 and not end4)
+                or (end4 and not start4)
+            ):
                 errors["base"] = "window_incomplete"
             else:
                 # Store tariff data and proceed to prices
@@ -393,9 +396,7 @@ class EVTrackerOptionsFlowHandler(config_entries.OptionsFlow):
             ),
         )
 
-    async def async_step_prices(
-        self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    async def async_step_prices(self, user_input: dict[str, Any] | None = None) -> FlowResult:
         """Configure default prices for charging sessions."""
         if user_input is not None:
             # Combine all options and create entry
@@ -415,15 +416,11 @@ class EVTrackerOptionsFlowHandler(config_entries.OptionsFlow):
                 {
                     vol.Optional(
                         CONF_USE_PRICES,
-                        default=self.config_entry.options.get(
-                            CONF_USE_PRICES, DEFAULT_USE_PRICES
-                        ),
+                        default=self.config_entry.options.get(CONF_USE_PRICES, DEFAULT_USE_PRICES),
                     ): selector.BooleanSelector(),
                     vol.Optional(
                         CONF_PRICE_HIGH,
-                        default=self.config_entry.options.get(
-                            CONF_PRICE_HIGH, DEFAULT_PRICE_HIGH
-                        ),
+                        default=self.config_entry.options.get(CONF_PRICE_HIGH, DEFAULT_PRICE_HIGH),
                     ): selector.NumberSelector(
                         selector.NumberSelectorConfig(
                             min=0,
@@ -435,9 +432,7 @@ class EVTrackerOptionsFlowHandler(config_entries.OptionsFlow):
                     ),
                     vol.Optional(
                         CONF_PRICE_LOW,
-                        default=self.config_entry.options.get(
-                            CONF_PRICE_LOW, DEFAULT_PRICE_LOW
-                        ),
+                        default=self.config_entry.options.get(CONF_PRICE_LOW, DEFAULT_PRICE_LOW),
                     ): selector.NumberSelector(
                         selector.NumberSelectorConfig(
                             min=0,

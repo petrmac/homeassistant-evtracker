@@ -32,7 +32,7 @@ CONF_VAT_PERCENTAGE: Final = "vat_percentage"
 CONF_USE_PRICES: Final = "use_prices"
 
 # Tariff window type options (what the configured windows represent)
-WINDOW_TYPE_LOW: Final = "low"    # Windows define LOW tariff periods (default)
+WINDOW_TYPE_LOW: Final = "low"  # Windows define LOW tariff periods (default)
 WINDOW_TYPE_HIGH: Final = "high"  # Windows define HIGH tariff periods
 
 # Tariff source options
@@ -55,7 +55,7 @@ DEFAULT_TARIFF_WINDOW_TYPE: Final = WINDOW_TYPE_LOW
 
 # Default price values
 DEFAULT_PRICE_HIGH: Final = 0.0  # Price per kWh without VAT for HIGH tariff
-DEFAULT_PRICE_LOW: Final = 0.0   # Price per kWh without VAT for LOW tariff
+DEFAULT_PRICE_LOW: Final = 0.0  # Price per kWh without VAT for LOW tariff
 DEFAULT_VAT_PERCENTAGE: Final = 21.0  # Czech VAT rate
 DEFAULT_USE_PRICES: Final = False  # Whether to use configured prices
 
@@ -109,7 +109,7 @@ ENERGY_SOURCE_SOLAR: Final = "SOLAR"
 
 # Tariff rate types (for dual-rate electricity plans)
 RATE_TYPE_HIGH: Final = "HIGH"  # Peak/daytime tariff
-RATE_TYPE_LOW: Final = "LOW"    # Off-peak/night tariff
+RATE_TYPE_LOW: Final = "LOW"  # Off-peak/night tariff
 
 # Providers
 PROVIDER_HOME: Final = "HOME"

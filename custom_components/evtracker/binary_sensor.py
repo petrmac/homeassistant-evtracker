@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from datetime import datetime, time
 import logging
+from datetime import datetime, time
 
 from homeassistant.components.binary_sensor import (
     BinarySensorDeviceClass,
@@ -234,7 +234,6 @@ class EVTrackerLowTariffSensor(BinarySensorEntity):
 
         # Check weekend setting - always LOW on weekends if enabled
         if options.get(CONF_TARIFF_WEEKEND_LOW, False):
-            # Weekend is Saturday (5) and Sunday (6)
             if now.weekday() >= 5:
                 self._is_on = True
                 return

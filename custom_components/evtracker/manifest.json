@@ -4,7 +4,6 @@
   "codeowners": ["@evtracker"],
   "config_flow": true,
   "documentation": "https://github.com/evtracker/homeassistant-evtracker",
-  "homeassistant": "2024.4.0",
   "integration_type": "service",
   "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/evtracker/homeassistant-evtracker/issues",
