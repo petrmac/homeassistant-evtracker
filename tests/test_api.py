@@ -57,24 +57,38 @@ class TestEVTrackerAPI:
     @pytest.mark.asyncio
     async def test_get_session_creates_new(self):
         """Test session creation when none exists."""
-        api = EVTrackerAPI("test_key")
+        with patch("aiohttp.ClientSession") as mock_session_class:
+            mock_session = MagicMock()
+            mock_session.closed = False
+            mock_session.close = AsyncMock()
+            mock_session_class.return_value = mock_session
 
-        session = await api._get_session()
+            api = EVTrackerAPI("test_key")
 
-        assert session is not None
-        assert api._owned_session is True
+            session = await api._get_session()
 
-        await api.close()
+            assert session is not None
+            assert api._owned_session is True
+            mock_session_class.assert_called_once()
+
+            await api.close()
+            mock_session.close.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_close_owned_session(self):
         """Test closing owned session."""
-        api = EVTrackerAPI("test_key")
-        await api._get_session()  # Creates owned session
+        with patch("aiohttp.ClientSession") as mock_session_class:
+            mock_session = MagicMock()
+            mock_session.closed = False
+            mock_session.close = AsyncMock()
+            mock_session_class.return_value = mock_session
 
-        await api.close()
+            api = EVTrackerAPI("test_key")
+            await api._get_session()  # Creates owned session
 
-        assert api._session.closed
+            await api.close()
+
+            mock_session.close.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_close_not_owned_session(self):
