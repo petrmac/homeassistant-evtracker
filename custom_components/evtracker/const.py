@@ -42,7 +42,6 @@ TARIFF_SOURCE_ENTITY: Final = "entity"
 
 # Default values
 DEFAULT_UPDATE_INTERVAL: Final = 300  # 5 minutes
-DEFAULT_API_BASE_URL: Final = "https://api.evtracker.cz/api/v1"
 DEFAULT_TARIFF_LOW_START_1: Final = "22:00"
 DEFAULT_TARIFF_LOW_END_1: Final = "06:00"
 DEFAULT_TARIFF_LOW_START_2: Final = ""  # Empty = disabled
@@ -58,13 +57,6 @@ DEFAULT_PRICE_HIGH: Final = 0.0  # Price per kWh without VAT for HIGH tariff
 DEFAULT_PRICE_LOW: Final = 0.0  # Price per kWh without VAT for LOW tariff
 DEFAULT_VAT_PERCENTAGE: Final = 21.0  # Czech VAT rate
 DEFAULT_USE_PRICES: Final = False  # Whether to use configured prices
-
-# API endpoints
-ENDPOINT_CARS: Final = "/cars"
-ENDPOINT_CARS_DEFAULT: Final = "/cars/default"
-ENDPOINT_SESSIONS: Final = "/sessions"
-ENDPOINT_SESSIONS_SIMPLE: Final = "/sessions/simple"
-ENDPOINT_HA_STATE: Final = "/homeassistant/state"
 
 # Service names
 SERVICE_LOG_SESSION: Final = "log_session"

@@ -85,7 +85,7 @@ class EVTrackerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
             try:
                 # Validate API key by fetching cars
-                self._cars = await api.get_cars()
+                self._cars = await api.get_cars_raw()
                 self._api_key = api_key
 
                 if not self._cars:

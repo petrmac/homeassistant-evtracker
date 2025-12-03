@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable
 from datetime import datetime, time
+from typing import Any
 
 from homeassistant.components.binary_sensor import (
     BinarySensorDeviceClass,
@@ -128,7 +130,7 @@ class EVTrackerLowTariffSensor(BinarySensorEntity):
         self.config_entry = config_entry
         self._attr_unique_id = f"{coordinator.car_id}_{BINARY_SENSOR_LOW_TARIFF}"
         self._is_on: bool = False
-        self._unsubscribe_callbacks: list = []
+        self._unsubscribe_callbacks: list[Callable[[], None]] = []
 
     @property
     def device_info(self) -> DeviceInfo:
@@ -149,7 +151,7 @@ class EVTrackerLowTariffSensor(BinarySensorEntity):
         return self._is_on
 
     @property
-    def extra_state_attributes(self) -> dict:
+    def extra_state_attributes(self) -> dict[str, Any]:
         """Return extra attributes."""
         options = self.config_entry.options
         tariff_source = options.get(CONF_TARIFF_SOURCE)
@@ -222,7 +224,7 @@ class EVTrackerLowTariffSensor(BinarySensorEntity):
         self.async_write_ha_state()
 
     @callback
-    def _handle_entity_change(self, event) -> None:
+    def _handle_entity_change(self, event: Any) -> None:
         """Handle entity state change for entity-based tariff."""
         self._update_entity_state()
         self.async_write_ha_state()

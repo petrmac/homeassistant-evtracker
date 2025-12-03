@@ -112,8 +112,8 @@ def mock_api(
     """Create a mock API client."""
     with patch("custom_components.evtracker.api.EVTrackerAPI", autospec=True) as mock_api_class:
         mock_instance = mock_api_class.return_value
-        mock_instance.get_cars = AsyncMock(return_value=mock_cars_response)
-        mock_instance.get_state = AsyncMock(return_value=mock_state_response)
+        mock_instance.get_cars_raw = AsyncMock(return_value=mock_cars_response)
+        mock_instance.get_state_raw = AsyncMock(return_value=mock_state_response)
         mock_instance.get_default_car = AsyncMock(return_value=mock_cars_response[0])
         mock_instance.log_session = AsyncMock(return_value=mock_session_response)
         mock_instance.log_session_simple = AsyncMock(return_value=mock_session_response)

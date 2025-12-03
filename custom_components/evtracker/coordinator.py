@@ -50,7 +50,7 @@ class EVTrackerDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     async def _async_update_data(self) -> dict[str, Any]:
         """Fetch data from EV Tracker API."""
         try:
-            state = await self.api.get_state()
+            state = await self.api.get_state_raw()
             _LOGGER.debug("Fetched state data: %s", state)
 
             # Add connection status

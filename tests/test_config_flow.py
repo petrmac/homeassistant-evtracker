@@ -16,7 +16,14 @@ from custom_components.evtracker.const import (
     CONF_CAR_NAME,
     CONF_PRICE_HIGH,
     CONF_PRICE_LOW,
+    CONF_TARIFF_ENTITY,
+    CONF_TARIFF_LOW_END_1,
+    CONF_TARIFF_LOW_END_2,
+    CONF_TARIFF_LOW_START_1,
+    CONF_TARIFF_LOW_START_2,
     CONF_TARIFF_SOURCE,
+    CONF_TARIFF_WEEKEND_LOW,
+    CONF_TARIFF_WINDOW_TYPE,
     CONF_UPDATE_INTERVAL,
     CONF_USE_PRICES,
     CONF_VAT_PERCENTAGE,
@@ -28,7 +35,10 @@ from custom_components.evtracker.const import (
     ERROR_CANNOT_CONNECT,
     ERROR_INVALID_API_KEY,
     ERROR_UNKNOWN,
+    TARIFF_SOURCE_ENTITY,
     TARIFF_SOURCE_NONE,
+    TARIFF_SOURCE_SCHEDULE,
+    WINDOW_TYPE_LOW,
 )
 
 
@@ -61,7 +71,7 @@ class TestConfigFlow:
             from custom_components.evtracker.api import EVTrackerAuthenticationError
 
             mock_api = mock_api_class.return_value
-            mock_api.get_cars = AsyncMock(side_effect=EVTrackerAuthenticationError("Invalid key"))
+            mock_api.get_cars_raw = AsyncMock(side_effect=EVTrackerAuthenticationError("Invalid key"))
             mock_api.close = AsyncMock()
 
             result = await hass.config_entries.flow.async_init(
@@ -87,7 +97,7 @@ class TestConfigFlow:
             from custom_components.evtracker.api import EVTrackerConnectionError
 
             mock_api = mock_api_class.return_value
-            mock_api.get_cars = AsyncMock(side_effect=EVTrackerConnectionError("Connection failed"))
+            mock_api.get_cars_raw = AsyncMock(side_effect=EVTrackerConnectionError("Connection failed"))
             mock_api.close = AsyncMock()
 
             result = await hass.config_entries.flow.async_init(
@@ -111,7 +121,7 @@ class TestConfigFlow:
         """Test handling unknown error."""
         with patch("custom_components.evtracker.config_flow.EVTrackerAPI") as mock_api_class:
             mock_api = mock_api_class.return_value
-            mock_api.get_cars = AsyncMock(side_effect=Exception("Unknown error"))
+            mock_api.get_cars_raw = AsyncMock(side_effect=Exception("Unknown error"))
             mock_api.close = AsyncMock()
 
             result = await hass.config_entries.flow.async_init(
@@ -135,7 +145,7 @@ class TestConfigFlow:
         """Test handling no cars found."""
         with patch("custom_components.evtracker.config_flow.EVTrackerAPI") as mock_api_class:
             mock_api = mock_api_class.return_value
-            mock_api.get_cars = AsyncMock(return_value=[])
+            mock_api.get_cars_raw = AsyncMock(return_value=[])
             mock_api.close = AsyncMock()
 
             result = await hass.config_entries.flow.async_init(
@@ -160,7 +170,7 @@ class TestConfigFlow:
         """Test successful API key validation leads to car selection."""
         with patch("custom_components.evtracker.config_flow.EVTrackerAPI") as mock_api_class:
             mock_api = mock_api_class.return_value
-            mock_api.get_cars = AsyncMock(return_value=mock_cars_response)
+            mock_api.get_cars_raw = AsyncMock(return_value=mock_cars_response)
             mock_api.close = AsyncMock()
 
             result = await hass.config_entries.flow.async_init(
@@ -185,7 +195,7 @@ class TestConfigFlow:
         """Test car selection creates config entry."""
         with patch("custom_components.evtracker.config_flow.EVTrackerAPI") as mock_api_class:
             mock_api = mock_api_class.return_value
-            mock_api.get_cars = AsyncMock(return_value=mock_cars_response)
+            mock_api.get_cars_raw = AsyncMock(return_value=mock_cars_response)
             mock_api.close = AsyncMock()
 
             # Start flow
@@ -233,7 +243,7 @@ class TestConfigFlow:
 
         with patch("custom_components.evtracker.config_flow.EVTrackerAPI") as mock_api_class:
             mock_api = mock_api_class.return_value
-            mock_api.get_cars = AsyncMock(return_value=mock_cars_response)
+            mock_api.get_cars_raw = AsyncMock(return_value=mock_cars_response)
             mock_api.close = AsyncMock()
 
             # Start flow
@@ -325,3 +335,199 @@ class TestOptionsFlow:
             CONF_PRICE_LOW: DEFAULT_PRICE_LOW,
             CONF_VAT_PERCENTAGE: DEFAULT_VAT_PERCENTAGE,
         }
+
+    @pytest.mark.asyncio
+    async def test_options_flow_schedule_tariff_shows_form(
+        self,
+        hass: HomeAssistant,
+        auto_enable_custom_integrations,
+        mock_config_entry_data: dict,
+    ):
+        """Test options flow shows schedule tariff form when schedule selected."""
+        entry = MockConfigEntry(
+            domain=DOMAIN,
+            title="EV Tracker - Test",
+            data=mock_config_entry_data,
+            unique_id=f"{DOMAIN}_123",
+        )
+        entry.add_to_hass(hass)
+
+        # Step 1: Init - select schedule tariff
+        result = await hass.config_entries.options.async_init(entry.entry_id)
+        assert result["step_id"] == "init"
+
+        result = await hass.config_entries.options.async_configure(
+            result["flow_id"],
+            {
+                CONF_UPDATE_INTERVAL: 300,
+                CONF_TARIFF_SOURCE: TARIFF_SOURCE_SCHEDULE,
+            },
+        )
+
+        # Should show tariff schedule form
+        assert result["type"] == FlowResultType.FORM
+        assert result["step_id"] == "tariff_schedule"
+
+    @pytest.mark.asyncio
+    async def test_options_flow_entity_tariff(
+        self,
+        hass: HomeAssistant,
+        auto_enable_custom_integrations,
+        mock_config_entry_data: dict,
+    ):
+        """Test options flow with entity tariff configuration."""
+        entry = MockConfigEntry(
+            domain=DOMAIN,
+            title="EV Tracker - Test",
+            data=mock_config_entry_data,
+            unique_id=f"{DOMAIN}_123",
+        )
+        entry.add_to_hass(hass)
+
+        # Step 1: Init - select entity tariff
+        result = await hass.config_entries.options.async_init(entry.entry_id)
+        result = await hass.config_entries.options.async_configure(
+            result["flow_id"],
+            {
+                CONF_UPDATE_INTERVAL: 300,
+                CONF_TARIFF_SOURCE: TARIFF_SOURCE_ENTITY,
+            },
+        )
+
+        # Step 2: Entity selection
+        assert result["type"] == FlowResultType.FORM
+        assert result["step_id"] == "tariff_entity"
+
+        result = await hass.config_entries.options.async_configure(
+            result["flow_id"],
+            {
+                CONF_TARIFF_ENTITY: "binary_sensor.low_tariff",
+            },
+        )
+
+        # Step 3: Prices
+        assert result["type"] == FlowResultType.FORM
+        assert result["step_id"] == "prices"
+
+        result = await hass.config_entries.options.async_configure(
+            result["flow_id"],
+            {},
+        )
+
+        assert result["type"] == FlowResultType.CREATE_ENTRY
+        assert result["data"][CONF_TARIFF_SOURCE] == TARIFF_SOURCE_ENTITY
+        assert result["data"][CONF_TARIFF_ENTITY] == "binary_sensor.low_tariff"
+
+    @pytest.mark.asyncio
+    async def test_options_flow_prices_step(
+        self,
+        hass: HomeAssistant,
+        auto_enable_custom_integrations,
+        mock_config_entry_data: dict,
+    ):
+        """Test options flow prices step with custom values."""
+        entry = MockConfigEntry(
+            domain=DOMAIN,
+            title="EV Tracker - Test",
+            data=mock_config_entry_data,
+            unique_id=f"{DOMAIN}_123",
+        )
+        entry.add_to_hass(hass)
+
+        # Step 1: Init
+        result = await hass.config_entries.options.async_init(entry.entry_id)
+        result = await hass.config_entries.options.async_configure(
+            result["flow_id"],
+            {CONF_UPDATE_INTERVAL: 300},
+        )
+
+        # Step 2: Prices with custom values
+        result = await hass.config_entries.options.async_configure(
+            result["flow_id"],
+            {
+                CONF_USE_PRICES: True,
+                CONF_PRICE_HIGH: 7.50,
+                CONF_PRICE_LOW: 4.00,
+                CONF_VAT_PERCENTAGE: 15.0,
+            },
+        )
+
+        assert result["type"] == FlowResultType.CREATE_ENTRY
+        assert result["data"][CONF_USE_PRICES] is True
+        assert result["data"][CONF_PRICE_HIGH] == 7.50
+        assert result["data"][CONF_PRICE_LOW] == 4.00
+        assert result["data"][CONF_VAT_PERCENTAGE] == 15.0
+
+
+class TestConfigFlowSelectCar:
+    """Test car selection edge cases."""
+
+    @pytest.mark.asyncio
+    async def test_car_selection_fallback_name(
+        self,
+        hass: HomeAssistant,
+        auto_enable_custom_integrations,
+    ):
+        """Test car selection with unknown car uses fallback name."""
+        # Create response with car that will be selected but with different ID
+        cars_response = [{"id": 999, "name": "Known Car"}]
+
+        with patch("custom_components.evtracker.config_flow.EVTrackerAPI") as mock_api_class:
+            mock_api = mock_api_class.return_value
+            mock_api.get_cars_raw = AsyncMock(return_value=cars_response)
+            mock_api.close = AsyncMock()
+
+            # Start flow
+            result = await hass.config_entries.flow.async_init(
+                DOMAIN, context={"source": config_entries.SOURCE_USER}
+            )
+
+            # Enter API key
+            result = await hass.config_entries.flow.async_configure(
+                result["flow_id"],
+                {CONF_API_KEY: "valid_key"},
+            )
+
+            # Manually set cars to simulate edge case where selected car_id doesn't match
+            flow = hass.config_entries.flow._progress.get(result["flow_id"])
+            flow._cars = [{"id": 888, "name": "Different Car"}]  # Car 999 won't be found
+
+            # Select car 999 which won't be found in the list
+            result = await hass.config_entries.flow.async_configure(
+                result["flow_id"],
+                {CONF_CAR_ID: "999"},
+            )
+
+            assert result["type"] == FlowResultType.CREATE_ENTRY
+            # Falls back to "Car 999" since car name not found
+            assert result["data"][CONF_CAR_NAME] == "Car 999"
+
+
+class TestOptionsFlowHandler:
+    """Test OptionsFlowHandler methods."""
+
+    @pytest.mark.asyncio
+    async def test_get_options_flow_returns_handler(
+        self,
+        hass: HomeAssistant,
+        auto_enable_custom_integrations,
+        mock_config_entry_data: dict,
+    ):
+        """Test that async_get_options_flow returns the handler."""
+        from custom_components.evtracker.config_flow import (
+            EVTrackerConfigFlow,
+            EVTrackerOptionsFlowHandler,
+        )
+
+        entry = MockConfigEntry(
+            domain=DOMAIN,
+            title="EV Tracker - Test",
+            data=mock_config_entry_data,
+            unique_id=f"{DOMAIN}_123",
+        )
+
+        handler = EVTrackerConfigFlow.async_get_options_flow(entry)
+
+        assert isinstance(handler, EVTrackerOptionsFlowHandler)
+        assert handler.config_entry == entry
+

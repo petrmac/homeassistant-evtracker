@@ -3,10 +3,10 @@
   "name": "EV Tracker",
   "codeowners": ["@evtracker"],
   "config_flow": true,
-  "documentation": "https://github.com/evtracker/homeassistant-evtracker",
+  "documentation": "https://www.home-assistant.io/integrations/evtracker",
   "integration_type": "service",
   "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/evtracker/homeassistant-evtracker/issues",
-  "requirements": ["aiohttp>=3.8.0"],
+  "requirements": ["aioevtracker==0.1.0"],
   "version": "1.0.0"
 }

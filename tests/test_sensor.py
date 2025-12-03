@@ -2,14 +2,19 @@
 
 from __future__ import annotations
 
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from homeassistant.components.sensor import SensorDeviceClass, SensorStateClass
+from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import UnitOfEnergy
+from homeassistant.core import HomeAssistant
 from homeassistant.helpers.device_registry import DeviceEntryType
 
 from custom_components.evtracker.const import (
+    CONF_API_KEY,
+    CONF_CAR_ID,
+    CONF_CAR_NAME,
     CURRENCY_CZK,
     DOMAIN,
     SENSOR_AVG_COST_PER_KWH,
@@ -27,6 +32,7 @@ from custom_components.evtracker.sensor import (
     SENSOR_DESCRIPTIONS,
     EVTrackerSensor,
     EVTrackerSensorEntityDescription,
+    async_setup_entry,
 )
 
 
@@ -282,3 +288,77 @@ class TestSensorValueFunctions:
             if desc.value_fn:
                 value = desc.value_fn(mock_coordinator)
                 assert value is None, f"Expected None for {desc.key}"
+
+
+class TestAsyncSetupEntry:
+    """Test async_setup_entry function."""
+
+    @pytest.fixture
+    def mock_config_entry(
+        self,
+        mock_api_key: str,
+        mock_car_id: int,
+        mock_car_name: str,
+    ) -> MagicMock:
+        """Create a mock config entry."""
+        entry = MagicMock(spec=ConfigEntry)
+        entry.entry_id = "test_entry_id"
+        entry.data = {
+            CONF_API_KEY: mock_api_key,
+            CONF_CAR_ID: mock_car_id,
+            CONF_CAR_NAME: mock_car_name,
+        }
+        entry.options = {}
+        return entry
+
+    @pytest.mark.asyncio
+    async def test_async_setup_entry_creates_entities(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator: MagicMock,
+        mock_config_entry: MagicMock,
+    ):
+        """Test that async_setup_entry creates all sensor entities."""
+        hass.data[DOMAIN] = {mock_config_entry.entry_id: mock_coordinator}
+
+        added_entities = []
+
+        def async_add_entities(entities):
+            added_entities.extend(entities)
+
+        await async_setup_entry(hass, mock_config_entry, async_add_entities)
+
+        # Should create all 8 sensor entities
+        assert len(added_entities) == 8
+        assert all(isinstance(e, EVTrackerSensor) for e in added_entities)
+
+    @pytest.mark.asyncio
+    async def test_async_setup_entry_creates_correct_sensors(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator: MagicMock,
+        mock_config_entry: MagicMock,
+    ):
+        """Test that async_setup_entry creates the correct sensors."""
+        hass.data[DOMAIN] = {mock_config_entry.entry_id: mock_coordinator}
+
+        added_entities = []
+
+        def async_add_entities(entities):
+            added_entities.extend(entities)
+
+        await async_setup_entry(hass, mock_config_entry, async_add_entities)
+
+        # Check all expected sensor keys
+        expected_keys = {
+            SENSOR_MONTHLY_ENERGY,
+            SENSOR_MONTHLY_COST,
+            SENSOR_MONTHLY_SESSIONS,
+            SENSOR_YEARLY_ENERGY,
+            SENSOR_YEARLY_COST,
+            SENSOR_LAST_SESSION_ENERGY,
+            SENSOR_LAST_SESSION_COST,
+            SENSOR_AVG_COST_PER_KWH,
+        }
+        actual_keys = {e.entity_description.key for e in added_entities}
+        assert actual_keys == expected_keys

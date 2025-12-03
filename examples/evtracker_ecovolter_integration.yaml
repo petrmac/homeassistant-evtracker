@@ -1,0 +1,333 @@
+# EV Tracker + EcoVolter Integration (Utility Meter Method)
+# Automatically logs charging sessions to EV Tracker with precise solar/grid tracking
+#
+# Uses your existing utility meters for accurate energy measurement:
+#   - sensor.ecovolter_energy_daily_self_3 (solar/self-consumption)
+#   - sensor.ecovolter_energy_daily_grid_high_2 (grid VT)
+#   - sensor.ecovolter_energy_daily_grid_low_2 (grid NT)
+#
+# Tariff detection uses EV Tracker's configured schedule via:
+#   - binary_sensor.evtracker_XXX_low_tariff (replace XXX with your car_id)
+#
+# Prerequisites:
+# 1. EV Tracker integration installed and configured with tariff schedule
+# 2. EcoVolter integration with utility meters set up
+#
+# IMPORTANT: Update the car_id in the evtracker sensor name below!
+
+input_datetime:
+  evtracker_session_start:
+    name: "EV Tracker - Session Start"
+    has_date: true
+    has_time: true
+    icon: mdi:clock-start
+
+input_number:
+  # Utility meter values at session start
+  evtracker_start_self_energy:
+    name: "EV Tracker - Start Self Energy"
+    min: 0
+    max: 100000
+    step: 0.001
+    unit_of_measurement: "kWh"
+    icon: mdi:solar-power
+    mode: box
+
+  evtracker_start_grid_high:
+    name: "EV Tracker - Start Grid VT"
+    min: 0
+    max: 100000
+    step: 0.001
+    unit_of_measurement: "kWh"
+    icon: mdi:transmission-tower
+    mode: box
+
+  evtracker_start_grid_low:
+    name: "EV Tracker - Start Grid NT"
+    min: 0
+    max: 100000
+    step: 0.001
+    unit_of_measurement: "kWh"
+    icon: mdi:transmission-tower
+    mode: box
+
+input_boolean:
+  evtracker_session_active:
+    name: "EV Tracker - Session Active"
+    icon: mdi:ev-station
+
+template:
+  - sensor:
+      # Live session stats
+      - name: "EV Tracker - Session Solar Energy"
+        unique_id: evtracker_session_solar
+        unit_of_measurement: "kWh"
+        device_class: energy
+        state: >
+          {% if is_state('input_boolean.evtracker_session_active', 'on') %}
+            {% set current = states('sensor.ecovolter_energy_daily_self_3') | float(0) %}
+            {% set start = states('input_number.evtracker_start_self_energy') | float(0) %}
+            {{ (current - start) | round(3) }}
+          {% else %}
+            0
+          {% endif %}
+
+      - name: "EV Tracker - Session Grid VT Energy"
+        unique_id: evtracker_session_grid_vt
+        unit_of_measurement: "kWh"
+        device_class: energy
+        state: >
+          {% if is_state('input_boolean.evtracker_session_active', 'on') %}
+            {% set current = states('sensor.ecovolter_energy_daily_grid_high_2') | float(0) %}
+            {% set start = states('input_number.evtracker_start_grid_high') | float(0) %}
+            {{ (current - start) | round(3) }}
+          {% else %}
+            0
+          {% endif %}
+
+      - name: "EV Tracker - Session Grid NT Energy"
+        unique_id: evtracker_session_grid_nt
+        unit_of_measurement: "kWh"
+        device_class: energy
+        state: >
+          {% if is_state('input_boolean.evtracker_session_active', 'on') %}
+            {% set current = states('sensor.ecovolter_energy_daily_grid_low_2') | float(0) %}
+            {% set start = states('input_number.evtracker_start_grid_low') | float(0) %}
+            {{ (current - start) | round(3) }}
+          {% else %}
+            0
+          {% endif %}
+
+      - name: "EV Tracker - Session Total Energy"
+        unique_id: evtracker_session_total
+        unit_of_measurement: "kWh"
+        device_class: energy
+        state: >
+          {% if is_state('input_boolean.evtracker_session_active', 'on') %}
+            {% set solar = states('sensor.evtracker_session_solar_energy') | float(0) %}
+            {% set vt = states('sensor.evtracker_session_grid_vt_energy') | float(0) %}
+            {% set nt = states('sensor.evtracker_session_grid_nt_energy') | float(0) %}
+            {{ (solar + vt + nt) | round(3) }}
+          {% else %}
+            0
+          {% endif %}
+
+      - name: "EV Tracker - Session Solar Percentage"
+        unique_id: evtracker_session_solar_pct
+        unit_of_measurement: "%"
+        state: >
+          {% set solar = states('sensor.evtracker_session_solar_energy') | float(0) %}
+          {% set total = states('sensor.evtracker_session_total_energy') | float(0) %}
+          {% if total > 0 %}
+            {{ ((solar / total) * 100) | round(1) }}
+          {% else %}
+            0
+          {% endif %}
+
+      - name: "EV Tracker - Session Duration"
+        unique_id: evtracker_session_duration
+        unit_of_measurement: "min"
+        state: >
+          {% if is_state('input_boolean.evtracker_session_active', 'on') %}
+            {% set start = states('input_datetime.evtracker_session_start') %}
+            {% if start not in ['unknown', 'unavailable'] %}
+              {{ ((now() - strptime(start, '%Y-%m-%d %H:%M:%S')).total_seconds() / 60) | round(0) }}
+            {% else %}
+              0
+            {% endif %}
+          {% else %}
+            0
+          {% endif %}
+
+automation:
+  # ============================================================================
+  # Session Start - Record utility meter values
+  # ============================================================================
+  - id: evtracker_session_start
+    alias: "EV Tracker - Session Start"
+    description: "Record utility meter values when charging starts"
+    trigger:
+      - platform: state
+        entity_id: binary_sensor.ecovolter_is_charging
+        from: "off"
+        to: "on"
+    condition: []
+    action:
+      - service: input_datetime.set_datetime
+        target:
+          entity_id: input_datetime.evtracker_session_start
+        data:
+          datetime: "{{ now().strftime('%Y-%m-%d %H:%M:%S') }}"
+
+      # Record current utility meter values
+      - service: input_number.set_value
+        target:
+          entity_id: input_number.evtracker_start_self_energy
+        data:
+          value: "{{ states('sensor.ecovolter_energy_daily_self_3') | float(0) }}"
+
+      - service: input_number.set_value
+        target:
+          entity_id: input_number.evtracker_start_grid_high
+        data:
+          value: "{{ states('sensor.ecovolter_energy_daily_grid_high_2') | float(0) }}"
+
+      - service: input_number.set_value
+        target:
+          entity_id: input_number.evtracker_start_grid_low
+        data:
+          value: "{{ states('sensor.ecovolter_energy_daily_grid_low_2') | float(0) }}"
+
+      - service: input_boolean.turn_on
+        target:
+          entity_id: input_boolean.evtracker_session_active
+
+      - service: logbook.log
+        data:
+          name: "EV Tracker"
+          message: "Charging session started - recording utility meter values"
+          entity_id: binary_sensor.ecovolter_is_charging
+
+  # ============================================================================
+  # Session End - Calculate deltas and log to EV Tracker
+  # ============================================================================
+  - id: evtracker_session_end
+    alias: "EV Tracker - Session End"
+    description: "Calculate energy breakdown and log to EV Tracker"
+    trigger:
+      - platform: state
+        entity_id: binary_sensor.ecovolter_is_charging
+        from: "on"
+        to: "off"
+        for:
+          seconds: 10
+    condition:
+      - condition: state
+        entity_id: input_boolean.evtracker_session_active
+        state: "on"
+    action:
+      - variables:
+          session_start: "{{ states('input_datetime.evtracker_session_start') }}"
+          # Calculate energy deltas from utility meters
+          solar_energy: >
+            {% set current = states('sensor.ecovolter_energy_daily_self_3') | float(0) %}
+            {% set start = states('input_number.evtracker_start_self_energy') | float(0) %}
+            {{ (current - start) | round(3) }}
+          grid_vt: >
+            {% set current = states('sensor.ecovolter_energy_daily_grid_high_2') | float(0) %}
+            {% set start = states('input_number.evtracker_start_grid_high') | float(0) %}
+            {{ (current - start) | round(3) }}
+          grid_nt: >
+            {% set current = states('sensor.ecovolter_energy_daily_grid_low_2') | float(0) %}
+            {% set start = states('input_number.evtracker_start_grid_low') | float(0) %}
+            {{ (current - start) | round(3) }}
+          grid_total: "{{ (grid_vt | float + grid_nt | float) | round(3) }}"
+          total_energy: "{{ (solar_energy | float + grid_vt | float + grid_nt | float) | round(3) }}"
+          # Determine primary energy source
+          energy_source: "{{ 'SOLAR' if (solar_energy | float) > (grid_total | float) else 'GRID' }}"
+          # Determine dominant tariff for grid portion
+          rate_type: "{{ 'LOW' if (grid_nt | float) >= (grid_vt | float) else 'HIGH' }}"
+          # External ID for deduplication
+          external_id: "ecovolter_{{ session_start | replace(' ', '_') | replace(':', '') | replace('-', '') }}"
+          # Calculate percentages
+          solar_pct: "{{ ((solar_energy | float / total_energy | float) * 100) | round(0) if total_energy | float > 0 else 0 }}"
+          grid_pct: "{{ ((grid_total | float / total_energy | float) * 100) | round(0) if total_energy | float > 0 else 0 }}"
+
+      # Only log if we have meaningful energy (> 0.1 kWh)
+      - condition: template
+        value_template: "{{ total_energy | float > 0.1 }}"
+
+      # Log to EV Tracker
+      - service: evtracker.log_session
+        data:
+          energy_kwh: "{{ total_energy }}"
+          start_time: "{{ session_start }}"
+          end_time: "{{ now().strftime('%Y-%m-%d %H:%M:%S') }}"
+          location: "Home"
+          external_id: "{{ external_id }}"
+          energy_source: "{{ energy_source }}"
+          rate_type: "{{ rate_type }}"
+          notes: >
+            Solar: {{ solar_energy }} kWh ({{ solar_pct }}%)
+            Grid VT: {{ grid_vt }} kWh
+            Grid NT: {{ grid_nt }} kWh
+            Grid total: {{ grid_total }} kWh ({{ grid_pct }}%)
+
+      # Reset session tracking
+      - service: input_boolean.turn_off
+        target:
+          entity_id: input_boolean.evtracker_session_active
+
+      - service: logbook.log
+        data:
+          name: "EV Tracker"
+          message: >
+            Session logged: {{ total_energy }} kWh
+            (Solar: {{ solar_pct }}%, Grid: {{ grid_pct }}%)
+          entity_id: binary_sensor.ecovolter_is_charging
+
+      # Notification with breakdown
+      - service: persistent_notification.create
+        data:
+          title: "EV Tracker - Session Logged"
+          message: |
+            **Charging session logged to EV Tracker**
+
+            **Total:** {{ total_energy }} kWh
+
+            **Breakdown:**
+            - Solar: {{ solar_energy }} kWh ({{ solar_pct }}%) - FREE
+            - Grid VT: {{ grid_vt }} kWh
+            - Grid NT: {{ grid_nt }} kWh
+
+            **Classification:**
+            - Source: {{ energy_source }}
+            - Tariff: {{ rate_type }}
+          notification_id: evtracker_session_logged
+
+  # ============================================================================
+  # Safety: Reset session if HA restarts during charging
+  # ============================================================================
+  - id: evtracker_startup_check
+    alias: "EV Tracker - Startup Check"
+    description: "Handle HA restart during active charging session"
+    trigger:
+      - platform: homeassistant
+        event: start
+    condition:
+      - condition: state
+        entity_id: binary_sensor.ecovolter_is_charging
+        state: "on"
+    action:
+      # If charging is active but session isn't tracked, start tracking
+      - condition: state
+        entity_id: input_boolean.evtracker_session_active
+        state: "off"
+      - service: input_datetime.set_datetime
+        target:
+          entity_id: input_datetime.evtracker_session_start
+        data:
+          datetime: "{{ now().strftime('%Y-%m-%d %H:%M:%S') }}"
+      - service: input_number.set_value
+        target:
+          entity_id: input_number.evtracker_start_self_energy
+        data:
+          value: "{{ states('sensor.ecovolter_energy_daily_self_3') | float(0) }}"
+      - service: input_number.set_value
+        target:
+          entity_id: input_number.evtracker_start_grid_high
+        data:
+          value: "{{ states('sensor.ecovolter_energy_daily_grid_high_2') | float(0) }}"
+      - service: input_number.set_value
+        target:
+          entity_id: input_number.evtracker_start_grid_low
+        data:
+          value: "{{ states('sensor.ecovolter_energy_daily_grid_low_2') | float(0) }}"
+      - service: input_boolean.turn_on
+        target:
+          entity_id: input_boolean.evtracker_session_active
+      - service: logbook.log
+        data:
+          name: "EV Tracker"
+          message: "Resumed session tracking after HA restart"
+          entity_id: binary_sensor.ecovolter_is_charging

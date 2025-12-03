@@ -44,7 +44,7 @@ class TestEVTrackerDataUpdateCoordinator:
     def mock_api_instance(self, mock_state_response: dict) -> AsyncMock:
         """Create a mock API instance."""
         api = AsyncMock()
-        api.get_state = AsyncMock(return_value=mock_state_response)
+        api.get_state_raw = AsyncMock(return_value=mock_state_response)
         return api
 
     def test_coordinator_init(
@@ -92,7 +92,7 @@ class TestEVTrackerDataUpdateCoordinator:
         assert data["currentMonth"] == mock_state_response["currentMonth"]
         assert data["currentYear"] == mock_state_response["currentYear"]
         assert data["lastSession"] == mock_state_response["lastSession"]
-        mock_api_instance.get_state.assert_called_once()
+        mock_api_instance.get_state_raw.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_async_update_data_api_error(
@@ -102,7 +102,7 @@ class TestEVTrackerDataUpdateCoordinator:
         mock_config_entry: MagicMock,
     ):
         """Test data update with API error."""
-        mock_api_instance.get_state = AsyncMock(side_effect=EVTrackerApiError("API Error"))
+        mock_api_instance.get_state_raw = AsyncMock(side_effect=EVTrackerApiError("API Error"))
 
         coordinator = EVTrackerDataUpdateCoordinator(hass, mock_api_instance, mock_config_entry)
 

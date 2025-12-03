@@ -9,13 +9,13 @@ import aiohttp
 import pytest
 
 from custom_components.evtracker.api import (
+    DEFAULT_API_BASE_URL,
     EVTrackerAPI,
     EVTrackerApiError,
     EVTrackerAuthenticationError,
     EVTrackerConnectionError,
     EVTrackerRateLimitError,
 )
-from custom_components.evtracker.const import DEFAULT_API_BASE_URL
 
 
 class TestEVTrackerAPI:
@@ -52,7 +52,7 @@ class TestEVTrackerAPI:
         assert headers["x-api-key"] == "test_api_key"
         assert headers["Content-Type"] == "application/json"
         assert headers["Accept"] == "application/json"
-        assert "HomeAssistant-EVTracker" in headers["User-Agent"]
+        assert "User-Agent" in headers
 
     @pytest.mark.asyncio
     async def test_get_session_creates_new(self):
@@ -119,7 +119,7 @@ class TestAPIRequests:
 
     @pytest.mark.asyncio
     async def test_get_cars_success(self):
-        """Test successful get_cars call."""
+        """Test successful get_cars_raw call."""
         mock_response = create_mock_response(200, {"data": [{"id": 1, "name": "Car 1"}]})
 
         with patch("aiohttp.ClientSession") as mock_session_class:
@@ -136,7 +136,7 @@ class TestAPIRequests:
             api._session = mock_session
             api._owned_session = False
 
-            result = await api.get_cars()
+            result = await api.get_cars_raw()
 
             assert result == [{"id": 1, "name": "Car 1"}]
 
@@ -160,7 +160,7 @@ class TestAPIRequests:
             api._owned_session = False
 
             with pytest.raises(EVTrackerAuthenticationError):
-                await api.get_cars()
+                await api.get_cars_raw()
 
     @pytest.mark.asyncio
     async def test_authentication_error_403(self):
@@ -182,7 +182,7 @@ class TestAPIRequests:
             api._owned_session = False
 
             with pytest.raises(EVTrackerAuthenticationError):
-                await api.get_state()
+                await api.get_state_raw()
 
     @pytest.mark.asyncio
     async def test_rate_limit_error_429(self):
@@ -204,7 +204,7 @@ class TestAPIRequests:
             api._owned_session = False
 
             with pytest.raises(EVTrackerRateLimitError) as exc_info:
-                await api.get_cars()
+                await api.get_cars_raw()
 
             assert "120" in str(exc_info.value)
 
@@ -228,7 +228,7 @@ class TestAPIRequests:
             api._owned_session = False
 
             with pytest.raises(EVTrackerApiError) as exc_info:
-                await api.get_cars()
+                await api.get_cars_raw()
 
             assert "500" in str(exc_info.value)
 
@@ -247,7 +247,7 @@ class TestAPIRequests:
             api._owned_session = False
 
             with pytest.raises(EVTrackerConnectionError):
-                await api.get_cars()
+                await api.get_cars_raw()
 
 
 class TestLogSession:
@@ -274,7 +274,7 @@ class TestLogSession:
 
             result = await api.log_session(energy_kwh=25.5)
 
-            assert result == {"id": 100}
+            assert result.id == 100
 
     @pytest.mark.asyncio
     async def test_log_session_full_parameters(self):
@@ -312,7 +312,7 @@ class TestLogSession:
                 notes="Test session",
             )
 
-            assert result == {"id": 101}
+            assert result.id == 101
 
     @pytest.mark.asyncio
     async def test_log_session_simple(self):
@@ -338,7 +338,7 @@ class TestLogSession:
                 location="Work",
             )
 
-            assert result == {"id": 102}
+            assert result.id == 102
 
 
 class TestValidateApiKey:
