@@ -3,7 +3,7 @@
 from typing import Final
 
 DOMAIN: Final = "evtracker"
-VERSION: Final = "1.0.0"
+VERSION: Final = "1.1.0"
 
 # Configuration keys
 CONF_API_KEY: Final = "api_key"
