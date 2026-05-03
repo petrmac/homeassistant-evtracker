@@ -53,6 +53,7 @@ from .const import (
     DEFAULT_VAT_PERCENTAGE,
     DOMAIN,
     ERROR_CANNOT_CONNECT,
+    ERROR_CAR_NOT_IN_ACCOUNT,
     ERROR_INVALID_API_KEY,
     ERROR_UNKNOWN,
     TARIFF_SOURCE_ENTITY,
@@ -74,6 +75,54 @@ class EVTrackerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         """Initialize the config flow."""
         self._api_key: str | None = None
         self._cars: list[dict[str, Any]] = []
+
+    async def async_step_reauth(self, entry_data: dict[str, Any]) -> FlowResult:
+        """Trigger reauth when the API key is rejected by the coordinator."""
+        # No form here — HA convention is to forward to a _confirm step so the
+        # entry point can be reused by trusted flows (discovery, etc.) that
+        # might want to skip the prompt.
+        return await self.async_step_reauth_confirm()
+
+    async def async_step_reauth_confirm(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Prompt the user for a fresh API key and swap it in-place."""
+        errors: dict[str, str] = {}
+        entry = self.hass.config_entries.async_get_entry(self.context["entry_id"])
+
+        if user_input is not None:
+            new_api_key = user_input[CONF_API_KEY]
+            api = EVTrackerAPI(new_api_key)
+
+            try:
+                cars = await api.get_cars_raw()
+                car_id = entry.data[CONF_CAR_ID]
+
+                if not any(car["id"] == car_id for car in cars):
+                    # Key is valid, but issued for a different account / car set.
+                    errors["base"] = ERROR_CAR_NOT_IN_ACCOUNT
+                else:
+                    return self.async_update_reload_and_abort(
+                        entry,
+                        data={**entry.data, CONF_API_KEY: new_api_key},
+                        reason="reauth_successful",
+                    )
+            except EVTrackerAuthenticationError:
+                errors["base"] = ERROR_INVALID_API_KEY
+            except EVTrackerConnectionError:
+                errors["base"] = ERROR_CANNOT_CONNECT
+            except Exception:  # pylint: disable=broad-except
+                _LOGGER.exception("Unexpected error during reauth validation")
+                errors["base"] = ERROR_UNKNOWN
+            finally:
+                await api.close()
+
+        return self.async_show_form(
+            step_id="reauth_confirm",
+            data_schema=vol.Schema({vol.Required(CONF_API_KEY): str}),
+            description_placeholders={"car_name": entry.data[CONF_CAR_NAME]},
+            errors=errors,
+        )
 
     async def async_step_user(self, user_input: dict[str, Any] | None = None) -> FlowResult:
         """Handle the initial step - API key entry."""

@@ -16,12 +16,12 @@ from aioevtracker import (
 
 # Re-export for backwards compatibility and convenience
 __all__ = [
+    "DEFAULT_API_BASE_URL",
     "EVTrackerAPI",
     "EVTrackerApiError",
     "EVTrackerAuthenticationError",
     "EVTrackerConnectionError",
     "EVTrackerRateLimitError",
-    "DEFAULT_API_BASE_URL",
 ]
 
 # Alias for backwards compatibility with existing code

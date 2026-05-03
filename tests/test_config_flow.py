@@ -17,13 +17,7 @@ from custom_components.evtracker.const import (
     CONF_PRICE_HIGH,
     CONF_PRICE_LOW,
     CONF_TARIFF_ENTITY,
-    CONF_TARIFF_LOW_END_1,
-    CONF_TARIFF_LOW_END_2,
-    CONF_TARIFF_LOW_START_1,
-    CONF_TARIFF_LOW_START_2,
     CONF_TARIFF_SOURCE,
-    CONF_TARIFF_WEEKEND_LOW,
-    CONF_TARIFF_WINDOW_TYPE,
     CONF_UPDATE_INTERVAL,
     CONF_USE_PRICES,
     CONF_VAT_PERCENTAGE,
@@ -33,12 +27,12 @@ from custom_components.evtracker.const import (
     DEFAULT_VAT_PERCENTAGE,
     DOMAIN,
     ERROR_CANNOT_CONNECT,
+    ERROR_CAR_NOT_IN_ACCOUNT,
     ERROR_INVALID_API_KEY,
     ERROR_UNKNOWN,
     TARIFF_SOURCE_ENTITY,
     TARIFF_SOURCE_NONE,
     TARIFF_SOURCE_SCHEDULE,
-    WINDOW_TYPE_LOW,
 )
 
 
@@ -501,6 +495,197 @@ class TestConfigFlowSelectCar:
             assert result["type"] == FlowResultType.CREATE_ENTRY
             # Falls back to "Car 999" since car name not found
             assert result["data"][CONF_CAR_NAME] == "Car 999"
+
+
+class TestReauthFlow:
+    """Test the reauth flow that runs when the API key is rejected mid-poll."""
+
+    @staticmethod
+    def _existing_entry(hass: HomeAssistant, mock_config_entry_data: dict) -> MockConfigEntry:
+        entry = MockConfigEntry(
+            domain=DOMAIN,
+            title="EV Tracker - Test Tesla Model 3",
+            data=mock_config_entry_data,
+            unique_id=f"{DOMAIN}_123",
+        )
+        entry.add_to_hass(hass)
+        return entry
+
+    @staticmethod
+    async def _start_reauth(hass: HomeAssistant, entry: MockConfigEntry):
+        return await hass.config_entries.flow.async_init(
+            DOMAIN,
+            context={
+                "source": config_entries.SOURCE_REAUTH,
+                "entry_id": entry.entry_id,
+            },
+            data=entry.data,
+        )
+
+    @pytest.mark.asyncio
+    async def test_reauth_form_is_shown(
+        self,
+        hass: HomeAssistant,
+        auto_enable_custom_integrations,
+        mock_config_entry_data: dict,
+    ):
+        """Reauth entry point should immediately show the confirm form."""
+        entry = self._existing_entry(hass, mock_config_entry_data)
+
+        result = await self._start_reauth(hass, entry)
+
+        assert result["type"] == FlowResultType.FORM
+        assert result["step_id"] == "reauth_confirm"
+        assert result["errors"] == {}
+
+    @pytest.mark.asyncio
+    async def test_reauth_success_updates_api_key(
+        self,
+        hass: HomeAssistant,
+        auto_enable_custom_integrations,
+        mock_config_entry_data: dict,
+        mock_cars_response: list[dict],
+    ):
+        """A new key whose account contains the configured car swaps the key in-place."""
+        entry = self._existing_entry(hass, mock_config_entry_data)
+        original_car_id = entry.data[CONF_CAR_ID]
+        original_car_name = entry.data[CONF_CAR_NAME]
+
+        with (
+            patch("custom_components.evtracker.config_flow.EVTrackerAPI") as mock_api_class,
+            patch("custom_components.evtracker.async_setup_entry", return_value=True),
+        ):
+            mock_api = mock_api_class.return_value
+            mock_api.get_cars_raw = AsyncMock(return_value=mock_cars_response)
+            mock_api.close = AsyncMock()
+
+            result = await self._start_reauth(hass, entry)
+            result = await hass.config_entries.flow.async_configure(
+                result["flow_id"],
+                {CONF_API_KEY: "new_valid_key"},
+            )
+
+        assert result["type"] == FlowResultType.ABORT
+        assert result["reason"] == "reauth_successful"
+        # API key swapped, car identity preserved
+        assert entry.data[CONF_API_KEY] == "new_valid_key"
+        assert entry.data[CONF_CAR_ID] == original_car_id
+        assert entry.data[CONF_CAR_NAME] == original_car_name
+        # New client should have been closed even on success path
+        mock_api.close.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_reauth_rejects_key_for_different_account(
+        self,
+        hass: HomeAssistant,
+        auto_enable_custom_integrations,
+        mock_config_entry_data: dict,
+    ):
+        """If the new key's car list doesn't contain the existing car_id, reject it."""
+        entry = self._existing_entry(hass, mock_config_entry_data)
+        original_api_key = entry.data[CONF_API_KEY]
+
+        # Cars returned by the new key — none match the configured car_id (123)
+        foreign_cars = [{"id": 999, "name": "Someone else's car"}]
+
+        with patch("custom_components.evtracker.config_flow.EVTrackerAPI") as mock_api_class:
+            mock_api = mock_api_class.return_value
+            mock_api.get_cars_raw = AsyncMock(return_value=foreign_cars)
+            mock_api.close = AsyncMock()
+
+            result = await self._start_reauth(hass, entry)
+            result = await hass.config_entries.flow.async_configure(
+                result["flow_id"],
+                {CONF_API_KEY: "key_for_other_account"},
+            )
+
+        assert result["type"] == FlowResultType.FORM
+        assert result["step_id"] == "reauth_confirm"
+        assert result["errors"] == {"base": ERROR_CAR_NOT_IN_ACCOUNT}
+        # Original key must remain untouched
+        assert entry.data[CONF_API_KEY] == original_api_key
+
+    @pytest.mark.asyncio
+    async def test_reauth_invalid_api_key(
+        self,
+        hass: HomeAssistant,
+        auto_enable_custom_integrations,
+        mock_config_entry_data: dict,
+    ):
+        """Auth errors during reauth keep the form open with invalid_api_key."""
+        entry = self._existing_entry(hass, mock_config_entry_data)
+        original_api_key = entry.data[CONF_API_KEY]
+
+        with patch("custom_components.evtracker.config_flow.EVTrackerAPI") as mock_api_class:
+            from custom_components.evtracker.api import EVTrackerAuthenticationError
+
+            mock_api = mock_api_class.return_value
+            mock_api.get_cars_raw = AsyncMock(
+                side_effect=EVTrackerAuthenticationError("Invalid key")
+            )
+            mock_api.close = AsyncMock()
+
+            result = await self._start_reauth(hass, entry)
+            result = await hass.config_entries.flow.async_configure(
+                result["flow_id"],
+                {CONF_API_KEY: "still_bad_key"},
+            )
+
+        assert result["type"] == FlowResultType.FORM
+        assert result["errors"] == {"base": ERROR_INVALID_API_KEY}
+        assert entry.data[CONF_API_KEY] == original_api_key
+
+    @pytest.mark.asyncio
+    async def test_reauth_cannot_connect(
+        self,
+        hass: HomeAssistant,
+        auto_enable_custom_integrations,
+        mock_config_entry_data: dict,
+    ):
+        """Connection errors during reauth surface as cannot_connect."""
+        entry = self._existing_entry(hass, mock_config_entry_data)
+
+        with patch("custom_components.evtracker.config_flow.EVTrackerAPI") as mock_api_class:
+            from custom_components.evtracker.api import EVTrackerConnectionError
+
+            mock_api = mock_api_class.return_value
+            mock_api.get_cars_raw = AsyncMock(
+                side_effect=EVTrackerConnectionError("Connection failed")
+            )
+            mock_api.close = AsyncMock()
+
+            result = await self._start_reauth(hass, entry)
+            result = await hass.config_entries.flow.async_configure(
+                result["flow_id"],
+                {CONF_API_KEY: "any_key"},
+            )
+
+        assert result["type"] == FlowResultType.FORM
+        assert result["errors"] == {"base": ERROR_CANNOT_CONNECT}
+
+    @pytest.mark.asyncio
+    async def test_reauth_unknown_error(
+        self,
+        hass: HomeAssistant,
+        auto_enable_custom_integrations,
+        mock_config_entry_data: dict,
+    ):
+        """Unexpected exceptions during reauth fall through to unknown."""
+        entry = self._existing_entry(hass, mock_config_entry_data)
+
+        with patch("custom_components.evtracker.config_flow.EVTrackerAPI") as mock_api_class:
+            mock_api = mock_api_class.return_value
+            mock_api.get_cars_raw = AsyncMock(side_effect=RuntimeError("boom"))
+            mock_api.close = AsyncMock()
+
+            result = await self._start_reauth(hass, entry)
+            result = await hass.config_entries.flow.async_configure(
+                result["flow_id"],
+                {CONF_API_KEY: "any_key"},
+            )
+
+        assert result["type"] == FlowResultType.FORM
+        assert result["errors"] == {"base": ERROR_UNKNOWN}
 
 
 class TestOptionsFlowHandler:

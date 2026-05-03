@@ -14,16 +14,25 @@
         "data": {
           "car_id": "Car"
         }
+      },
+      "reauth_confirm": {
+        "title": "Re-authenticate EV Tracker",
+        "description": "Your API key for {car_name} has expired or been revoked. Generate a new key at evtracker.cz/settings/api-keys and paste it below.",
+        "data": {
+          "api_key": "API Key"
+        }
       }
     },
     "error": {
       "cannot_connect": "Failed to connect to EV Tracker API. Please check your internet connection.",
       "invalid_api_key": "Invalid API key. Please check your key or ensure you have a PRO subscription.",
+      "car_not_in_account": "The new API key is valid, but doesn't have access to this car. Use a key from the same account, or remove and re-add the integration to pick a different car.",
       "no_cars": "No cars found in your account. Please add a car in EV Tracker first.",
       "unknown": "An unexpected error occurred. Please try again."
     },
     "abort": {
-      "already_configured": "This car is already configured."
+      "already_configured": "This car is already configured.",
+      "reauth_successful": "API key updated successfully."
     }
   },
   "options": {

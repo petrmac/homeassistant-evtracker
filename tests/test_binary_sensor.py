@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import time
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from homeassistant.components.binary_sensor import BinarySensorDeviceClass
@@ -809,13 +809,16 @@ class TestTariffSensorLifecycle:
         }
         sensor = EVTrackerLowTariffSensor(hass, mock_coordinator, config_entry)
 
-        with patch.object(sensor, "_update_schedule_state") as mock_update:
-            with patch.object(sensor, "async_write_ha_state") as mock_write:
-                from datetime import datetime
-                sensor._handle_time_change(datetime.now())
+        with (
+            patch.object(sensor, "_update_schedule_state") as mock_update,
+            patch.object(sensor, "async_write_ha_state") as mock_write,
+        ):
+            from datetime import datetime
 
-                mock_update.assert_called_once()
-                mock_write.assert_called_once()
+            sensor._handle_time_change(datetime.now())
+
+            mock_update.assert_called_once()
+            mock_write.assert_called_once()
 
     def test_handle_entity_change(
         self,
@@ -830,9 +833,11 @@ class TestTariffSensorLifecycle:
         }
         sensor = EVTrackerLowTariffSensor(hass, mock_coordinator, config_entry)
 
-        with patch.object(sensor, "_update_entity_state") as mock_update:
-            with patch.object(sensor, "async_write_ha_state") as mock_write:
-                sensor._handle_entity_change(MagicMock())
+        with (
+            patch.object(sensor, "_update_entity_state") as mock_update,
+            patch.object(sensor, "async_write_ha_state") as mock_write,
+        ):
+            sensor._handle_entity_change(MagicMock())
 
-                mock_update.assert_called_once()
-                mock_write.assert_called_once()
+            mock_update.assert_called_once()
+            mock_write.assert_called_once()

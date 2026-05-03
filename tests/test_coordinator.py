@@ -7,9 +7,10 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.update_coordinator import UpdateFailed
 
-from custom_components.evtracker.api import EVTrackerApiError
+from custom_components.evtracker.api import EVTrackerApiError, EVTrackerAuthenticationError
 from custom_components.evtracker.const import (
     CONF_API_KEY,
     CONF_CAR_ID,
@@ -110,6 +111,25 @@ class TestEVTrackerDataUpdateCoordinator:
             await coordinator._async_update_data()
 
         assert "Error communicating with API" in str(exc_info.value)
+
+    @pytest.mark.asyncio
+    async def test_async_update_data_auth_error_triggers_reauth(
+        self,
+        hass: HomeAssistant,
+        mock_api_instance: AsyncMock,
+        mock_config_entry: MagicMock,
+    ):
+        """Auth errors must raise ConfigEntryAuthFailed so HA opens a Reconfigure card."""
+        mock_api_instance.get_state_raw = AsyncMock(
+            side_effect=EVTrackerAuthenticationError("Token expired")
+        )
+
+        coordinator = EVTrackerDataUpdateCoordinator(hass, mock_api_instance, mock_config_entry)
+
+        with pytest.raises(ConfigEntryAuthFailed) as exc_info:
+            await coordinator._async_update_data()
+
+        assert "API key rejected" in str(exc_info.value)
 
 
 class TestCoordinatorProperties:

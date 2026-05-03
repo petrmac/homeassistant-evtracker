@@ -8,9 +8,10 @@ from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
-from .api import EVTrackerAPI, EVTrackerApiError
+from .api import EVTrackerAPI, EVTrackerApiError, EVTrackerAuthenticationError
 from .const import (
     CONF_CAR_ID,
     CONF_CAR_NAME,
@@ -58,6 +59,10 @@ class EVTrackerDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
             return state
 
+        except EVTrackerAuthenticationError as err:
+            # Surface as auth failure so HA shows a "Reconfigure" repair card
+            # and triggers the reauth flow instead of silently retrying.
+            raise ConfigEntryAuthFailed(f"API key rejected: {err}") from err
         except EVTrackerApiError as err:
             _LOGGER.error("Error fetching EV Tracker data: %s", err)
             # Return partial data with connection status

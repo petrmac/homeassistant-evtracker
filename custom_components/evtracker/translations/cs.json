@@ -14,16 +14,25 @@
         "data": {
           "car_id": "Auto"
         }
+      },
+      "reauth_confirm": {
+        "title": "Znovu přihlásit EV Tracker",
+        "description": "Váš API klíč pro {car_name} vypršel nebo byl zneplatněn. Vygenerujte nový klíč na evtracker.cz/settings/api-keys a vložte ho níže.",
+        "data": {
+          "api_key": "API klíč"
+        }
       }
     },
     "error": {
       "cannot_connect": "Nepodařilo se připojit k EV Tracker API. Zkontrolujte připojení k internetu.",
       "invalid_api_key": "Neplatný API klíč. Zkontrolujte klíč nebo se ujistěte, že máte PRO předplatné.",
+      "car_not_in_account": "Nový API klíč je platný, ale nemá přístup k tomuto autu. Použijte klíč ze stejného účtu, nebo integraci odeberte a znovu přidejte pro výběr jiného auta.",
       "no_cars": "Ve vašem účtu nebyla nalezena žádná auta. Nejprve přidejte auto v EV Tracker.",
       "unknown": "Došlo k neočekávané chybě. Zkuste to prosím znovu."
     },
     "abort": {
-      "already_configured": "Toto auto je již nakonfigurováno."
+      "already_configured": "Toto auto je již nakonfigurováno.",
+      "reauth_successful": "API klíč byl úspěšně aktualizován."
     }
   },
   "options": {
